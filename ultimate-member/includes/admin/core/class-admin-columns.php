@@ -33,42 +33,6 @@ if ( ! class_exists( 'um\admin\core\Admin_Columns' ) ) {
 			add_filter( 'display_post_states', array( &$this, 'add_display_post_states' ), 10, 2 );
 
 			add_filter( 'post_row_actions', array( &$this, 'remove_bulk_actions_um_form_inline' ), 10, 2 );
-
-			add_filter( 'manage_users_columns', array( &$this, 'manage_users_columns' ) );
-
-			add_filter( 'manage_users_custom_column', array( &$this, 'manage_users_custom_column' ), 10, 3 );
-		}
-
-		/**
-		 * Filter: Add column 'Status'
-		 *
-		 * @param array $columns
-		 *
-		 * @return array
-		 */
-		public function manage_users_columns( $columns ) {
-			$columns['account_status'] = __( 'Status', 'ultimate-member' );
-			return $columns;
-		}
-
-
-		/**
-		 * Filter: Show column 'Status'
-		 *
-		 * @param string $val
-		 * @param string $column_name
-		 * @param int $user_id
-		 *
-		 * @return string
-		 */
-		public function manage_users_custom_column( $val, $column_name, $user_id ) {
-			if ( $column_name == 'account_status' ) {
-				um_fetch_user( $user_id );
-				$value = um_user( 'account_status_name' );
-				um_reset_user();
-				return $value;
-			}
-			return $val;
 		}
 
 		/**
@@ -244,7 +208,7 @@ if ( ! class_exists( 'um\admin\core\Admin_Columns' ) ) {
 		public function add_display_post_states( $post_states, $post ) {
 
 			foreach ( UM()->config()->core_pages as $page_key => $page_value ) {
-				$page_id = UM()->options()->get( UM()->options()->get_core_page_id( $page_key ) );
+				$page_id = UM()->options()->get( UM()->options()->get_predefined_page_option_key( $page_key ) );
 
 				if ( $page_id == $post->ID ) {
 					$post_states[ 'um_core_page_' . $page_key ] = sprintf( 'UM %s', $page_value['title'] );

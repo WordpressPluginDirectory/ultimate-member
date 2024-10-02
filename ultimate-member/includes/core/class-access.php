@@ -761,6 +761,8 @@ if ( ! class_exists( 'um\core\Access' ) ) {
 				return $content;
 			}
 
+			$original_post_content = $content;
+
 			if ( $this->is_restricted( $id ) ) {
 				$restriction = $this->get_post_privacy_settings( $id );
 
@@ -770,8 +772,31 @@ if ( ! class_exists( 'um\core\Access' ) ) {
 					$content = ! empty( $restriction['_um_restrict_custom_message'] ) ? stripslashes( $restriction['_um_restrict_custom_message'] ) : '';
 				}
 
-				// translators: %s: Restricted post message.
-				$content = sprintf( __( '%s', 'ultimate-member' ), $content );
+				// Because we have a late the_content callback priority here we have to apply shortcodes if faced in restricted message.
+				$content = apply_shortcodes( $content );
+				/**
+				 * Filters the restricted post content.
+				 * Can be used for translations when site is multilingual.
+				 *
+				 * @param {string} $content               Post content prepared from restricted message.
+				 * @param {int}    $post_id               Post ID
+				 * @param {string} $original_post_content Original post content.
+				 *
+				 * @return {string} Maybe changed post content prepared from restricted message.
+				 *
+				 * @since 2.8.7
+				 * @hook um_restricted_post_content
+				 *
+				 * @example <caption>Trim restriction message if post_id = 111.</caption>
+				 * function my_restricted_post_content( $content, $post_id, $original_post_content ) {
+				 *     if ( 111 === $post_id ) {
+				 *         $content = trim( $content );
+				 *     }
+				 *     return $content;
+				 * }
+				 * add_filter( 'um_restricted_post_content', 'my_restricted_post_content', 10, 3 );
+				 */
+				$content = apply_filters( 'um_restricted_post_content', $content, $id, $original_post_content );
 			}
 
 			return $content;
@@ -1239,7 +1264,7 @@ if ( ! class_exists( 'um\core\Access' ) ) {
 				return $block_content;
 			}
 
-			$default_message = UM()->options()->get( 'restricted_block_message' );
+			$default_message = wp_kses_post( UM()->options()->get( 'restricted_block_message' ) );
 			switch ( $block['attrs']['um_who_access'] ) {
 				case '1': {
 					if ( ! is_user_logged_in() ) {
@@ -1248,7 +1273,7 @@ if ( ! class_exists( 'um\core\Access' ) ) {
 							if ( $block['attrs']['um_message_type'] == '1' ) {
 								$block_content = $default_message;
 							} elseif ( $block['attrs']['um_message_type'] == '2' ) {
-								$block_content = isset( $block['attrs']['um_message_content'] ) ? esc_textarea( $block['attrs']['um_message_content'] ) : '';
+								$block_content = isset( $block['attrs']['um_message_content'] ) ? wp_kses_post( $block['attrs']['um_message_content'] ) : '';
 							}
 						}
 					} else {
@@ -1272,7 +1297,7 @@ if ( ! class_exists( 'um\core\Access' ) ) {
 								if ( $block['attrs']['um_message_type'] == '1' ) {
 									$block_content = $default_message;
 								} elseif ( $block['attrs']['um_message_type'] == '2' ) {
-									$block_content = isset( $block['attrs']['um_message_content'] ) ? esc_textarea( $block['attrs']['um_message_content'] ) : '';
+									$block_content = isset( $block['attrs']['um_message_content'] ) ? wp_kses_post( $block['attrs']['um_message_content'] ) : '';
 								}
 							}
 						}
@@ -1286,7 +1311,7 @@ if ( ! class_exists( 'um\core\Access' ) ) {
 							if ( $block['attrs']['um_message_type'] == '1' ) {
 								$block_content = $default_message;
 							} elseif ( $block['attrs']['um_message_type'] == '2' ) {
-								$block_content = isset( $block['attrs']['um_message_content'] ) ? esc_textarea( $block['attrs']['um_message_content'] ) : '';
+								$block_content = isset( $block['attrs']['um_message_content'] ) ? wp_kses_post( $block['attrs']['um_message_content'] ) : '';
 							}
 						}
 					}
@@ -1772,10 +1797,10 @@ if ( ! class_exists( 'um\core\Access' ) ) {
 					$access = UM()->options()->get( 'accessible' );
 
 					if ( $access == 2 ) {
-						//global settings for accessible home page
+						// Global settings for accessible home page
 						$home_page_accessible = UM()->options()->get( 'home_page_accessible' );
 
-						if ( $home_page_accessible == 0 ) {
+						if ( ! $home_page_accessible ) {
 							//get redirect URL if not set get login page by default
 							$redirect = UM()->options()->get( 'access_redirect' );
 							if ( ! $redirect ) {
@@ -1795,9 +1820,9 @@ if ( ! class_exists( 'um\core\Access' ) ) {
 					$access = UM()->options()->get( 'accessible' );
 
 					if ( $access == 2 ) {
-						//global settings for accessible home page
+						// Global settings for accessible home page
 						$category_page_accessible = UM()->options()->get( 'category_page_accessible' );
-						if ( $category_page_accessible == 0 ) {
+						if ( ! $category_page_accessible ) {
 							//get redirect URL if not set get login page by default
 							$redirect = UM()->options()->get( 'access_redirect' );
 							if ( ! $redirect ) {

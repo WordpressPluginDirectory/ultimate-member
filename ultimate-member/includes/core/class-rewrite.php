@@ -78,6 +78,7 @@ if ( ! class_exists( 'um\core\Rewrite' ) ) {
 		public function add_rewrite_rules( $rules ) {
 			$newrules = array();
 
+			// NGINX-config `rewrite ^/um-download/([^/]+)/([^/]+)/([^/]+)/([^/]+)/?$ /index.php?um_action=download&um_form=$1&um_field=$2&um_user=$3&um_verify=$4 last;`
 			$newrules['um-download/([^/]+)/([^/]+)/([^/]+)/([^/]+)/?$'] = 'index.php?um_action=download&um_form=$matches[1]&um_field=$matches[2]&um_user=$matches[3]&um_verify=$matches[4]';
 
 			if ( isset( UM()->config()->permalinks['user'] ) ) {
@@ -233,8 +234,8 @@ if ( ! class_exists( 'um\core\Rewrite' ) ) {
 					$user_id = $this->get_user_id_by_user_login_slug();
 				}
 
-				if ( 'user_id' === $permalink_base ) {
-					$user_id = UM()->user()->user_exists_by_id( um_queried_user() );
+				if ( 'user_id' === $permalink_base && UM()->common()->users()::user_exists( um_queried_user() ) ) {
+					$user_id = um_queried_user();
 				}
 
 				if ( 'hash' === $permalink_base ) {

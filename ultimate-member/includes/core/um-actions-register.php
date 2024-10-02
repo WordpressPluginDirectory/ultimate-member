@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function um_post_registration_approved_hook( $user_id ) {
 	um_fetch_user( $user_id );
 
-	UM()->user()->approve();
+	UM()->common()->users()->approve( $user_id, true );
 }
 add_action( 'um_post_registration_approved_hook', 'um_post_registration_approved_hook' );
 
@@ -23,7 +23,7 @@ add_action( 'um_post_registration_approved_hook', 'um_post_registration_approved
 function um_post_registration_checkmail_hook( $user_id ) {
 	um_fetch_user( $user_id );
 
-	UM()->user()->email_pending();
+	UM()->common()->users()->send_activation( $user_id, true );
 }
 add_action( 'um_post_registration_checkmail_hook', 'um_post_registration_checkmail_hook' );
 
@@ -35,7 +35,7 @@ add_action( 'um_post_registration_checkmail_hook', 'um_post_registration_checkma
 function um_post_registration_pending_hook( $user_id ) {
 	um_fetch_user( $user_id );
 
-	UM()->user()->pending();
+	UM()->common()->users()->set_as_pending( $user_id, true );
 }
 add_action( 'um_post_registration_pending_hook', 'um_post_registration_pending_hook' );
 
@@ -64,7 +64,8 @@ function um_after_insert_user( $user_id, $args, $form_data = null ) {
 		um_fetch_user( $user_id );
 		$status = um_user( 'status' );
 	}
-	UM()->user()->set_status( $status );
+
+	UM()->common()->users()->set_status( $user_id, $status );
 
 	// Create user uploads directory.
 	UM()->uploader()->get_upload_user_base_dir( $user_id, true );
@@ -766,7 +767,7 @@ add_action( 'um_registration_set_extra_data', 'um_registration_set_profile_full_
  * Redirect from default registration to UM registration page
  */
 function um_form_register_redirect() {
-	$page_id = UM()->options()->get( UM()->options()->get_core_page_id( 'register' ) );
+	$page_id = UM()->options()->get( UM()->options()->get_predefined_page_option_key( 'register' ) );
 	// Do not redirect if the registration page is not published.
 	if ( ! empty( $page_id ) && 'publish' === get_post_status( $page_id ) ) {
 		// Not `um_safe_redirect()` because predefined register page is situated on the same host.

@@ -2,22 +2,21 @@
 Author URI: https://ultimatemember.com/
 Plugin URI: https://ultimatemember.com/
 Contributors: ultimatemember, champsupertramp, nsinelnikov
-Donate link:
 Tags: community, member, membership, user-profile, user-registration
 Requires PHP: 5.6
 Requires at least: 5.5
-Tested up to: 6.4
-Stable tag: 2.8.4
-License: GNU Version 2 or Any Later Version
+Tested up to: 6.6
+Stable tag: 2.8.7
+License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.txt
 
-The #1 plugin for front-end user profiles, user registration & login forms, member directories, content restriction, user roles and more.
+Membership & community plugin with user profiles, registration & login, member directories, content restriction, user roles and much more.
 
 == Description ==
 
-= Best User Profile & Membership Plugin for WordPress =
+= User Profile & Membership Plugin for WordPress =
 
-Ultimate Member is the #1 user profile & membership plugin for WordPress. The plugin makes it a breeze for users to sign-up and become members of your website. The plugin allows you to add beautiful user profiles to your site and is perfect for creating advanced online communities and membership sites. Lightweight and highly extendible, Ultimate Member will enable you to create almost any type of site where users can join and become members with absolute ease.
+The ultimate user profile & membership plugin for WordPress. The plugin makes it a breeze for users to sign-up and become members of your website. The plugin allows you to add beautiful user profiles to your site and is designed for creating advanced online communities and membership sites. Lightweight and highly extendible, Ultimate Member will enable you to create almost any type of site where users can join and become members with absolute ease.
 
 = Features of the plugin include: =
 
@@ -167,6 +166,116 @@ No specific extensions are needed. But we highly recommended keep active these P
 
 IMPORTANT: PLEASE UPDATE THE PLUGIN TO AT LEAST VERSION 2.6.7 IMMEDIATELY. VERSION 2.6.7 PATCHES SECURITY PRIVILEGE ESCALATION VULNERABILITY. PLEASE SEE [THIS ARTICLE](https://docs.ultimatemember.com/article/1866-security-incident-update-and-recommended-actions) FOR MORE INFORMATION
 
+= 2.8.7 2024-10-01 =
+
+**Enhancements**
+
+* Added: Single user actions on WP Users list table
+* Updated: User status filter on WP Users list table
+* Updated: User bulk actions on WP Users list table
+* Updated: User actions on User Profile and Member Directory card
+* Added: Applying shortcodes in the post restriction message
+* Added: ProfilePage Structured Data
+* Added: Ability to use HTML tags (allowed in `wp_kses_post`) in the global block restriction message
+* Changed: Some wp-admin fields descriptions
+* Updated: Data format in `um_admin_bulk_user_actions_hook` filter hook. Changed format from `$action_slug => array( 'label' => $action_title )` to `$action_slug => $action_title`
+* Added: `$old_status` param to `um_after_user_status_is_changed` action hook
+* Added: `$user_id` param to `um_before_user_hash_is_changed` action hook
+* Added: `$user_id, $hash, $expiration` params to `um_after_user_hash_is_changed` action hook
+* Added: `um_restricted_post_content` filter hook
+* Added: `um_loggedin_inner_content` filter hook
+* Added: `um_profile_dynamic_meta_profile_schema` filter hook
+* Removed: `UM()->fields()->get_restricted_fields_for_edit()` function from a fields loop
+
+**Bugfixes**
+
+* Fixed: Single user action on User Profile security vulnerability. CVE ID: CVE-2024-8520
+* Fixed: [um_loggedin] shortcode security vulnerability. CVE ID: CVE-2024-8519
+* Fixed: Performance issue related to Settings > Secure tab
+* Fixed: The "Clear All" button in the member directory did not reset all dependent dropdowns
+* Fixed: Telegram and Discord social links in profile header
+* Fixed: UM links to empty phone numbers
+* Fixed: Email changing via User Account flush session. Security enhancement because email can be used for login
+* Fixed: User Profile image URL in meta tags
+* Fixed: Empty User Profile and PHP Fatal error when cannot get profile field data
+* Fixed: Parsing /modal/ templates and parsing templates on the Windows hosting
+* Fixed: Validation `form_id` attribute in the `ultimatemember` shortcode
+
+**Templates required update**
+
+* login-to-view.php
+
+**Cached and optimized/minified assets(JS/CSS) must be flushed/re-generated after upgrade**
+
+**Deprecated**
+
+* Hook: Action hook `um_after_user_status_is_changed_hook`. Use action hook `um_after_user_status_is_changed` instead.
+* Hook: Action hook `um_when_status_is_set`. Use action hook `um_before_user_status_is_set` instead.
+* Hook: Action hook `um_admin_user_action_hook`. Use filter hook `um_handle_bulk_actions-users-{$current_action}` for custom user bulk actions instead.
+* Hook: Action hook `um_admin_user_action_{$bulk_action}_hook`. Use filter hook `um_handle_bulk_actions-users-{$current_action}` for custom user bulk actions instead.
+* Hook: Action hook `um_admin_custom_hook_{$action}`. Use filter hook `um_handle_bulk_actions-users-{$current_action}` for custom user bulk actions instead.
+* Hook: Filter hook `um_admin_views_users`. Use filter 'um_user_statuses_admin_filter_options' hook instead.
+* Function: `UM()->user()->set_status( $status )`. Use function `UM()->common()->users()->set_status( $status, $user_id )` instead.
+* Function: `UM()->user()->assign_secretkey()`. Use function `UM()->common()->users()->assign_secretkey( $user_id )` instead.
+* Function: `UM()->user()->approve( $repeat )`. Use function `UM()->common()->users()->approve( $user_id, $force )` instead.
+* Function: `UM()->user()->email_pending()`. Use function `UM()->common()->users()->send_activation( $user_id, $force )` instead.
+* Function: `UM()->user()->pending()`. Use function `UM()->common()->users()->set_as_pending( $user_id, $force )` instead.
+* Function: `UM()->user()->reject()`. Use function `UM()->common()->users()->reject( $user_id )` instead.
+* Function: `UM()->user()->deactivate()`. Use function `UM()->common()->users()->deactivate( $user_id )` instead.
+* Function: `UM()->user()->user_exists_by_id( $user_id )`. Use function `UM()->common()->users()::user_exists( $user_id )` instead.
+* Function: `UM()->files()->format_bytes( $size )`. Use function `UM()->common()->filesystem()::format_bytes( $size )` instead.
+
+= 2.8.6 2024-05-22 =
+
+**Enhancements**
+
+* Added: Member Directory > Admin Filtering supports datepicker and timepicker filter-types with only "From" or "To" filled value
+* Added: Ability to customize modal templates upload-single.php and view-photo.php
+* Added: New FontAwesome library. Version 6.5.2
+
+**Bugfixes**
+
+* Fixed: Using HTML in the block restriction message. Replaced escaper to wp_kses sanitize while saving
+* Fixed: Getting user capabilities without role
+* Fixed: YouTube validation when field value is empty
+* Fixed: Social URLs sanitizing where user can put his social username (e.g. Instagram, Facebook)
+* Fixed: Using only published forms and member directories IDs on predefined pages installation
+* Fixed: Member Directory before query hook when custom meta table is active
+* Fixed: Unique email validation
+* Fixed: Displaying asterisk on the Profile > View Mode
+* Fixed: PHP errors while upgrade from 1.3.x version
+* Fixed: Rating field view
+* Fixed: Sorting by last login value when "Hide my last login" is set
+* Fixed: PHP errors while uploading files
+* Fixed: Parsing error on the license activation
+* Fixed: Saving field value when type is textarea and using HTML is enabled
+
+**Templates required update**
+
+* Renamed templates/modal/um_upload_single.php → templates/modal/upload-single.php
+* Renamed templates/modal/um_view_photo.php → templates/modal/view-photo.php
+
+**Cached and optimized/minified assets(JS/CSS) must be flushed/re-generated after upgrade**
+
+= 2.8.5 2024-04-09 =
+
+**Enhancements**
+
+* Added: "Hide my last login" via the Account > Privacy setting
+* Added: Exclude and Include fields for member directory searching
+* Tweak: Compatibility with WordPress 6.5
+
+**Bugfixes**
+
+* Fixed: URL attributes escaping (CVE-2024-2765)
+* Fixed: wp-admin Ultimate Member > Dashboard layouts
+* Fixed: Required fields labels
+* Fixed: Change password and update account email notifications duplicates
+* Fixed: Reset Password urlencoded username
+* Fixed: Clear media JS in wp-admin settings
+
+**Cached and optimized/minified assets(JS/CSS) must be flushed/re-generated after upgrade**
+
 = 2.8.4 2024-03-06 =
 
 **Enhancements**
@@ -180,6 +289,8 @@ IMPORTANT: PLEASE UPDATE THE PLUGIN TO AT LEAST VERSION 2.6.7 IMMEDIATELY. VERSI
 * Fixed: Password validation error
 * Fixed: Password reset url for the approved user who didn't set their password after registration without password
 * Fixed: Conflict with WebP Uploads
+
+**Cached and optimized/minified assets(JS/CSS) must be flushed/re-generated after upgrade**
 
 = 2.8.3 2024-02-19 =
 
@@ -312,6 +423,12 @@ IMPORTANT: PLEASE UPDATE THE PLUGIN TO AT LEAST VERSION 2.6.7 IMMEDIATELY. VERSI
 [See changelog for all versions](https://plugins.svn.wordpress.org/ultimate-member/trunk/changelog.txt).
 
 == Upgrade Notice ==
+
+= 2.8.7 =
+This version fixes a security related bug. Upgrade immediately.
+
+= 2.8.5 =
+This version fixes a security related bug. Upgrade immediately.
 
 = 2.8.4 =
 This version fixes a security related bug. Upgrade immediately.

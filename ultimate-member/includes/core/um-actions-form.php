@@ -417,13 +417,15 @@ function um_submit_form_errors_hook_( $submitted_data, $form_data ) {
 		um_reset_user();
 	}
 
+	$restricted_fields = array();
+	if ( 'profile' === $mode ) {
+		$restricted_fields = UM()->fields()->get_restricted_fields_for_edit();
+	}
+
 	foreach ( $fields as $key => $array ) {
 
-		if ( 'profile' === $mode ) {
-			$restricted_fields = UM()->fields()->get_restricted_fields_for_edit();
-			if ( is_array( $restricted_fields ) && in_array( $key, $restricted_fields, true ) ) {
-				continue;
-			}
+		if ( 'profile' === $mode && is_array( $restricted_fields ) && in_array( $key, $restricted_fields, true ) ) {
+			continue;
 		}
 
 		$can_view = true;
@@ -924,7 +926,7 @@ function um_submit_form_errors_hook_( $submitted_data, $form_data ) {
 						UM()->form()->add_error( $key, __( 'You must provide your email', 'ultimate-member' ) );
 					} elseif ( 'register' === $mode && $email_exists ) {
 						UM()->form()->add_error( $key, __( 'The email you entered is incorrect', 'ultimate-member' ) );
-					} elseif ( 'profile' === $mode && $email_exists && $email_exists !== $submitted_data['user_id'] ) {
+					} elseif ( 'profile' === $mode && $email_exists && absint( $email_exists ) !== absint( $submitted_data['user_id'] ) ) {
 						UM()->form()->add_error( $key, __( 'The email you entered is incorrect', 'ultimate-member' ) );
 					} elseif ( ! is_email( $submitted_data[ $key ] ) ) {
 						UM()->form()->add_error( $key, __( 'The email you entered is incorrect', 'ultimate-member' ) );

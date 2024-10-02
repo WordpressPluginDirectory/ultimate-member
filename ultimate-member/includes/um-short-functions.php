@@ -120,7 +120,6 @@ function um_replace_placeholders() {
 		'{user_account_link}',
 	);
 
-
 	/**
 	 * UM hook
 	 *
@@ -870,7 +869,7 @@ function um_user_submited_display( $k, $title, $data = array(), $style = true ) 
 		}
 
 		if ( ! empty( $filedata['original_name'] ) ) {
-			$v = '<a class="um-preview-upload" target="_blank" href="' . esc_attr( $baseurl . um_user( 'ID' ) . '/' . $file ) . '">' . esc_html( $filedata['original_name'] ) . '</a>';
+			$v = '<a class="um-preview-upload" target="_blank" href="' . esc_url( $baseurl . um_user( 'ID' ) . '/' . $file ) . '">' . esc_html( $filedata['original_name'] ) . '</a>';
 		} else {
 			$v = $baseurl . um_user( 'ID' ) . '/' . $file;
 		}
@@ -1448,7 +1447,7 @@ function um_set_requested_user( $user_id ) {
  */
 function um_get_requested_user() {
 	if ( ! empty( UM()->user()->target_id ) ) {
-		return UM()->user()->target_id;
+		return absint( UM()->user()->target_id );
 	}
 
 	return false;
@@ -1579,7 +1578,7 @@ function um_can_view_field( $data ) {
 
 /**
  * Checks if user can view profile
- *
+ * @todo make the function review. Maybe rewrite it.
  * @param int $user_id
  *
  * @return bool
@@ -1607,9 +1606,15 @@ function um_can_view_profile( $user_id ) {
 					$can_view_roles = array();
 				}
 
-				if ( count( $can_view_roles ) && count( array_intersect( UM()->roles()->get_all_user_roles( $user_id ), $can_view_roles ) ) <= 0 ) {
+				$all_roles = UM()->roles()->get_all_user_roles( $user_id );
+				if ( empty( $all_roles ) ) {
 					um_fetch_user( $temp_id );
 					$can_view = false;
+				} else {
+					if ( count( $can_view_roles ) && count( array_intersect( $all_roles, $can_view_roles ) ) <= 0 ) {
+						um_fetch_user( $temp_id );
+						$can_view = false;
+					}
 				}
 			}
 		}
@@ -1912,6 +1917,9 @@ function um_profile( $key ) {
  * @return bool|string
  */
 function um_youtube_id_from_url( $url ) {
+	if ( ! $url ) {
+		return true;
+	}
 	$url = preg_replace( '/&ab_channel=.*/', '', $url ); // ADBlock argument.
 	$url = preg_replace( '/\?si=.*/', '', $url ); // referral attribute.
 

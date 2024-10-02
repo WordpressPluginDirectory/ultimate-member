@@ -653,13 +653,6 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 		 * @return string
 		 */
 		public function field_label( $label, $key, $data ) {
-			$output  = null;
-			$output .= '<div class="um-field-label">';
-
-			if ( ! empty( $data['icon'] ) && isset( $this->field_icons ) && 'off' !== $this->field_icons && ( 'label' === $this->field_icons || true === $this->viewing ) ) {
-				$output .= '<div class="um-field-label-icon"><i class="' . esc_attr( $data['icon'] ) . '" aria-label="' . esc_attr( $label ) . '"></i></div>';
-			}
-
 			if ( true === $this->viewing ) {
 				/**
 				 * Filters Ultimate Member field label on the Profile form: View mode.
@@ -730,13 +723,26 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 				$label = apply_filters( 'um_edit_label_all_fields', $label, $data );
 			}
 
+			$output  = null;
+			$output .= '<div class="um-field-label">';
+
+			if ( ! empty( $data['icon'] ) && isset( $this->field_icons ) && 'off' !== $this->field_icons && ( 'label' === $this->field_icons || true === $this->viewing ) ) {
+				$output .= '<div class="um-field-label-icon"><i class="' . esc_attr( $data['icon'] ) . '" aria-label="' . esc_attr( $label ) . '"></i></div>';
+			}
+
 			$fields_without_metakey = UM()->builtin()->get_fields_without_metakey();
 			$for_attr               = '';
 			if ( ! in_array( $data['type'], $fields_without_metakey, true ) ) {
 				$for_attr = ' for="' . esc_attr( $key . UM()->form()->form_suffix ) . '"';
 			}
 
-			$output .= '<label' . $for_attr . '>' . __( $label, 'ultimate-member' ) . '</label>';
+			$output .= '<label' . $for_attr . '>' . esc_html__( $label, 'ultimate-member' );
+
+			if ( ! $this->viewing && ! empty( $data['required'] ) && UM()->options()->get( 'form_asterisk' ) ) {
+				$output .= '<span class="um-req" title="' . esc_attr__( 'Required', 'ultimate-member' ) . '">*</span>';
+			}
+
+			$output .= '</label>';
 
 			if ( ! empty( $data['help'] ) && false === $this->viewing && false === strpos( $key, 'confirm_user_pass' ) ) {
 				if ( ! UM()->mobile()->isMobile() ) {
@@ -1507,24 +1513,24 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 			return '';
 		}
 
-
 		/**
 		 * Get field label
 		 *
-		 * @param  string $key
+		 * @param string $key Field meta key
 		 *
 		 * @return string
 		 */
-		function get_label( $key ) {
-			$label = '';
+		public function get_label( $key ) {
+			$label      = '';
+			$fields     = UM()->builtin()->all_user_fields;
+			$field_data = array_key_exists( $key, $fields ) ? $fields[ $key ] : array();
 
-			$fields = UM()->builtin()->all_user_fields;
-			if ( isset( $fields[ $key ]['label'] ) ) {
-				$label = stripslashes( $fields[ $key ]['label'] );
+			if ( array_key_exists( 'label', $field_data ) ) {
+				$label = stripslashes( $field_data['label'] );
 			}
 
-			if ( empty( $label ) && isset( $fields[ $key ]['title'] ) ) {
-				$label = stripslashes( $fields[ $key ]['title'] );
+			if ( empty( $label ) && array_key_exists( 'title', $field_data ) ) {
+				$label = stripslashes( $field_data['title'] );
 			}
 
 			/**
@@ -1550,12 +1556,10 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 			 * }
 			 * add_filter( 'um_change_field_label', 'my_change_field_label', 10, 3 );
 			 */
-			$label = apply_filters( 'um_change_field_label', $label, $key, $fields[ $key ] );
+			$label = apply_filters( 'um_change_field_label', $label, $key, $field_data );
 
-			$label = sprintf( __( '%s', 'ultimate-member' ), $label );
-			return $label;
+			return sprintf( __( '%s', 'ultimate-member' ), $label );
 		}
-
 
 		/**
 		 * Get field title
@@ -2106,7 +2110,6 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 			return apply_filters( 'um_field_non_utf8_value', $option_value );
 		}
 
-
 		/**
 		 * Getting the fields that need to be disabled in edit mode (profile)
 		 *
@@ -2115,6 +2118,13 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 		 * @return array
 		 */
 		public function get_restricted_fields_for_edit( $_um_profile_id = false ) {
+			static $cache = array();
+
+			$cache_key = absint( $_um_profile_id );
+			if ( array_key_exists( $cache_key, $cache ) ) {
+				return $cache[ $cache_key ];
+			}
+
 			// fields that need to be disabled in edit mode (profile)
 			$arr_restricted_fields = array( 'user_email', 'username', 'user_login', 'user_password', '_um_last_login', 'user_registered' );
 			/**
@@ -2137,7 +2147,9 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 			 * }
 			 * add_filter( 'um_user_profile_restricted_edit_fields', 'my_make_email_editable', 10, 2 );
 			 */
-			return apply_filters( 'um_user_profile_restricted_edit_fields', $arr_restricted_fields, $_um_profile_id );
+			$cache[ $cache_key ] = apply_filters( 'um_user_profile_restricted_edit_fields', $arr_restricted_fields, $_um_profile_id );
+
+			return $cache[ $cache_key ];
 		}
 
 		/**
@@ -2824,6 +2836,8 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 						 */
 						$textarea_settings = apply_filters( 'um_form_fields_textarea_settings', $textarea_settings, $data );
 
+						$field_value = empty( $field_value ) ? '' : $field_value;
+
 						// turn on the output buffer
 						ob_start();
 
@@ -3092,7 +3106,7 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 							$fonticon    = UM()->files()->get_fonticon_by_ext( $file_type['ext'] );
 
 							$output .= '<div class="um-single-fileinfo">';
-							$output .= '<a href="' . esc_attr( $file_url ) . '" target="_blank">';
+							$output .= '<a href="' . esc_url( $file_url ) . '" target="_blank">';
 							$output .= '<span class="icon" style="background:' . esc_attr( $fonticon_bg ) . '"><i class="' . esc_attr( $fonticon ) . '"></i></span>';
 							$output .= '<span class="filename">' . esc_html( $file_field_name ) . '</span>';
 							$output .= '</a></div></div>';
@@ -4278,11 +4292,24 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 		 * @throws \Exception
 		 */
 		public function view_field( $key, $data, $rule = false ) {
+			if ( '_um_last_login' === $key ) {
+				$profile_id      = um_user( 'ID' );
+				$show_last_login = get_user_meta( $profile_id, 'um_show_last_login', true );
+				if ( ! empty( $show_last_login ) && 'no' === $show_last_login[0] ) {
+					return '';
+				}
+			}
+
 			$output = '';
 
 			// Get whole field data.
 			if ( is_array( $data ) ) {
 				$data = $this->get_field( $key );
+			}
+
+			// Invalid field data.
+			if ( ! is_array( $data ) ) {
+				return '';
 			}
 
 			//hide if empty type

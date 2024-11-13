@@ -543,7 +543,7 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 					'size'        => 'medium',
 				),
 				array(
-					'id'          => 'a$access_fieldsccess_redirect',
+					'id'          => 'access_redirect',
 					'type'        => 'text',
 					'label'       => __( 'Custom Redirect URL', 'ultimate-member' ),
 					'description' => __( 'A logged out user will be redirected to this url If he is not permitted to access the site.', 'ultimate-member' ),
@@ -769,7 +769,7 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 						'sanitize' => 'bool',
 					),
 					'activation_link_expiry_time'           => array(
-						'sanitize' => 'absint',
+						'sanitize' => 'empty_absint',
 					),
 					'account_tab_password'                  => array(
 						'sanitize' => 'bool',
@@ -1003,6 +1003,9 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 						'sanitize' => 'bool',
 					),
 					'enable_blocks'                         => array(
+						'sanitize' => 'bool',
+					),
+					'enable_action_scheduler'               => array(
 						'sanitize' => 'bool',
 					),
 					'rest_api_version'                      => array(
@@ -2781,7 +2784,7 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 							if ( ! empty( $results ) ) {
 								foreach ( $results as $user_id ) {
 									$md_data = get_user_meta( $user_id, 'um_member_directory_data', true );
-									if ( ! empty( $md_data ) ) {
+									if ( ! empty( $md_data ) && is_array( $md_data ) ) {
 										$md_data['profile_photo'] = ! empty( $_POST['um_options']['use_gravatars'] );
 										update_user_meta( $user_id, 'um_member_directory_data', $md_data );
 									}
@@ -2831,7 +2834,7 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 					if ( ! empty( $results ) ) {
 						foreach ( $results as $user_id ) {
 							$md_data = get_user_meta( $user_id, 'um_member_directory_data', true );
-							if ( ! empty( $md_data ) ) {
+							if ( ! empty( $md_data ) && is_array( $md_data ) ) {
 								$md_data['hide_in_members'] = ( $_POST['um_options']['account_hide_in_directory_default'] === 'No' ) ? false : true;
 								update_user_meta( $user_id, 'um_member_directory_data', $md_data );
 							}

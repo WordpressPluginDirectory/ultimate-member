@@ -116,6 +116,10 @@ if ( ! class_exists( 'um\core\Form' ) ) {
 		public function ajax_select_options() {
 			UM()->check_ajax_nonce();
 
+			if ( UM()->is_rate_limited( 'select_options' ) ) {
+				wp_send_json_error( __( 'Too many requests', 'ultimate-member' ) );
+			}
+
 			// phpcs:disable WordPress.Security.NonceVerification
 
 			$arr_options           = array();
@@ -818,6 +822,7 @@ if ( ! class_exists( 'um\core\Form' ) ) {
 		 * @return array $form
 		 */
 		public function sanitize( $form ) {
+			$submission_input = $form;
 			if ( isset( $form['form_id'] ) ) {
 				if ( isset( $this->form_data['custom_fields'] ) ) {
 					$custom_fields = maybe_unserialize( $this->form_data['custom_fields'] );
@@ -837,28 +842,14 @@ if ( ! class_exists( 'um\core\Form' ) ) {
 											break;
 										case 'textarea':
 											if ( ! empty( $field['html'] ) || ( UM()->profile()->get_show_bio_key( $form ) === $k && UM()->options()->get( 'profile_show_html_bio' ) ) ) {
+												$allowed_html = UM()->get_allowed_html( 'templates' );
+												if ( UM()->profile()->get_show_bio_key( $form ) === $k ) {
+													$allowed_html = 'user_description';
+												}
+
 												$form[ $k ] = html_entity_decode( $form[ $k ] ); // required because WP_Editor send sometimes encoded content.
 												$form[ $k ] = self::maybe_apply_tidy( $form[ $k ], $field );
-
-												$allowed_html = UM()->get_allowed_html( 'templates' );
-												if ( empty( $allowed_html['iframe'] ) ) {
-													$allowed_html['iframe'] = array(
-														'allow'           => true,
-														'frameborder'     => true,
-														'loading'         => true,
-														'name'            => true,
-														'referrerpolicy'  => true,
-														'sandbox'         => true,
-														'src'             => true,
-														'srcdoc'          => true,
-														'title'           => true,
-														'width'           => true,
-														'height'          => true,
-														'allowfullscreen' => true,
-													);
-												}
 												$form[ $k ] = wp_kses( strip_shortcodes( $form[ $k ] ), $allowed_html );
-												add_filter( 'wp_kses_allowed_html', array( &$this, 'wp_kses_user_desc' ), 10, 2 );
 											} else {
 												$form[ $k ] = sanitize_textarea_field( strip_shortcodes( $form[ $k ] ) );
 											}
@@ -979,27 +970,7 @@ if ( ! class_exists( 'um\core\Form' ) ) {
 							if ( ! empty( $custom_fields[ $description_key ]['html'] ) && $bio_html ) {
 								$form[ $description_key ] = html_entity_decode( $form[ $description_key ] ); // required because WP_Editor send sometimes encoded content.
 								$form[ $description_key ] = self::maybe_apply_tidy( $form[ $description_key ], $custom_fields[ $description_key ] );
-
-								$allowed_html = UM()->get_allowed_html( 'templates' );
-								if ( empty( $allowed_html['iframe'] ) ) {
-									$allowed_html['iframe'] = array(
-										'allow'           => true,
-										'frameborder'     => true,
-										'loading'         => true,
-										'name'            => true,
-										'referrerpolicy'  => true,
-										'sandbox'         => true,
-										'src'             => true,
-										'srcdoc'          => true,
-										'title'           => true,
-										'width'           => true,
-										'height'          => true,
-										'allowfullscreen' => true,
-									);
-								}
-								$form[ $description_key ] = wp_kses( strip_shortcodes( $form[ $description_key ] ), $allowed_html );
-
-								add_filter( 'wp_kses_allowed_html', array( &$this, 'wp_kses_user_desc' ), 10, 2 );
+								$form[ $description_key ] = wp_kses( strip_shortcodes( $form[ $description_key ] ), 'user_description' );
 							} else {
 								$form[ $description_key ] = sanitize_textarea_field( strip_shortcodes( $form[ $description_key ] ) );
 							}
@@ -1008,58 +979,40 @@ if ( ! class_exists( 'um\core\Form' ) ) {
 
 					if ( ! $field_exists ) {
 						if ( $bio_html ) {
-							$allowed_html = UM()->get_allowed_html( 'templates' );
-							if ( empty( $allowed_html['iframe'] ) ) {
-								$allowed_html['iframe'] = array(
-									'allow'           => true,
-									'frameborder'     => true,
-									'loading'         => true,
-									'name'            => true,
-									'referrerpolicy'  => true,
-									'sandbox'         => true,
-									'src'             => true,
-									'srcdoc'          => true,
-									'title'           => true,
-									'width'           => true,
-									'height'          => true,
-									'allowfullscreen' => true,
-								);
-							}
-							$form[ $description_key ] = wp_kses( strip_shortcodes( $form[ $description_key ] ), $allowed_html );
-
-							add_filter( 'wp_kses_allowed_html', array( &$this, 'wp_kses_user_desc' ), 10, 2 );
+							$form[ $description_key ] = html_entity_decode( $form[ $description_key ] ); // required because WP_Editor send sometimes encoded content.
+							$form[ $description_key ] = self::maybe_apply_tidy( $form[ $description_key ], array() );
+							$form[ $description_key ] = wp_kses( strip_shortcodes( $form[ $description_key ] ), 'user_description' );
 						} else {
 							$form[ $description_key ] = sanitize_textarea_field( strip_shortcodes( $form[ $description_key ] ) );
 						}
 					}
 				}
 			}
-
-			return $form;
-		}
-
-		public function wp_kses_user_desc( $tags, $context ) {
-			if ( 'user_description' === $context || 'pre_user_description' === $context ) {
-				$allowed_html = UM()->get_allowed_html( 'templates' );
-				if ( empty( $allowed_html['iframe'] ) ) {
-					$allowed_html['iframe'] = array(
-						'allow'           => true,
-						'frameborder'     => true,
-						'loading'         => true,
-						'name'            => true,
-						'referrerpolicy'  => true,
-						'sandbox'         => true,
-						'src'             => true,
-						'srcdoc'          => true,
-						'title'           => true,
-						'width'           => true,
-						'height'          => true,
-						'allowfullscreen' => true,
-					);
-				}
-				$tags = $allowed_html;
-			}
-			return $tags;
+			/**
+			 * Filters submitted via the UM forms data array.
+			 *
+			 * @param {array} $form             Submitted and sanitized by default UM methods data array.
+			 * @param {array} $submission_input Original submitted data array before sanitize.
+			 * @param {array} $form_data        Submitted form data. Since 2.11.3
+			 *
+			 * @return {array} Submitted and sanitized data array.
+			 *
+			 * @since 2.11.2
+			 * @since 2.11.3 Added $form_data attribute.
+			 * @hook um_sanitize_form_submission
+			 *
+			 * @example <caption>Change standard methods of sanitize for `user_description` field.</caption>
+			 * function my_email_templates_path_by_slug( $form, $submission_input, $form_data ) {
+			 *     // your code here
+			 *     $description_key = UM()->profile()->get_show_bio_key( $form_data );
+			 *     if ( ! empty( $form[ $description_key ] ) && ! empty( $submission_input[ $description_key ] ) ) {
+			 *         $form[ $description_key ] = wp_kses( $submission_input[ $description_key ], UM()->get_allowed_html( 'templates' ) );
+			 *     }
+			 *     return $form;
+			 * }
+			 * add_filter( 'um_sanitize_form_submission', 'my_sanitize_form_submission', 10, 3 );
+			 */
+			return apply_filters( 'um_sanitize_form_submission', $form, $submission_input, $this->form_data );
 		}
 
 		/**

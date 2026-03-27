@@ -5,8 +5,8 @@ Contributors: ultimatemember, champsupertramp, nsinelnikov
 Tags: community, member, membership, user-profile, user-registration
 Requires PHP: 7.0
 Requires at least: 6.2
-Tested up to: 6.8
-Stable tag: 2.10.6
+Tested up to: 6.9
+Stable tag: 2.11.3
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.txt
 
@@ -167,152 +167,117 @@ No specific extensions are needed. But we highly recommended keep active these P
 
 IMPORTANT: PLEASE UPDATE THE PLUGIN TO AT LEAST VERSION 2.6.7 IMMEDIATELY. VERSION 2.6.7 PATCHES SECURITY PRIVILEGE ESCALATION VULNERABILITY. PLEASE SEE [THIS ARTICLE](https://docs.ultimatemember.com/article/1866-security-incident-update-and-recommended-actions) FOR MORE INFORMATION
 
-= 2.10.6 2025-10-02 =
+= 2.11.3 2026-03-26 =
 
 **Enhancements**
 
-* Added: Avoid caching of the UM Forms on the mobile devices via adding the nocache headers to the screens with UM Forms.
-* Added: Filter hook `um_get_empty_status_users_query_result` for changing default query on the different websites to optimize it.
-* Added: Filter hook `um_admin_settings_get_pages_list_args` for changing WP_Query arguments for getting pages visible in the dropdown fields in UM Settings.
-* Added: JS filter hook `um_admin_blocks_prefixes_excluded` for excluding 3rd-party Gutenberg blocks with predefined prefixes from UM restriction arguments.
-* Added: WebP file-extension support for UM uploader.
-* Added: `UM_LICENSE_REQUEST_DEBUG` constant for debugging license activation process when it's needed.
-* Added: `Extensions_Updater` class to standardize the upgrade process in UM extensions.
-* Added: Sanitize handlers `sanitize_array_key_int` and `sanitize_array_key` for making sanitize in UM extensions' settings.
+* Added: UM > Settings > Advanced > APIs section for set available APIs settings.
+* Added: GoogleMaps API setting when it's available.
+* Added: Function `UM()->mail()->enabled_email()` for checking if the email notification is enabled by the user.
+* Added: `color` type of sanitize settings saved in wp-admin.
+* Added: Checking array type of submission data when `url` type of sanitize is used in wp-admin.
+* Added: Enhance UM form sanitization filter with $form_data param. Added the $form_data parameter to the `um_sanitize_form_submission` filter.
+* Added: Option for special character requirement for passwords. It's situated in "General > Users > Password requires special character" (based on @faisalahammad suggestions)
+* Added: Filter hook `um_before_account_delete_text` for changing before delete account text by 3rd-party plugins. End-customers can use it for translations.
+* Added: Filter hook `um_custom_{$message_key}` (`um_custom_pending_message`, `um_custom_checkmail_message`) for changing after-registration message based on the user status by 3rd-party plugins. End-customers can use it for translations.
+* Added: Filter hook `um_convert_tags_blacklist_fields` For 3rd-party integrations to control the usermeta keys in `um_convert_tags()` function.
+* Added: `.um-display-none` CSS utility + `umShow()/umHide()/umToggle()` jQuery helpers.
+* Added: `um-notice` JS library.
 
 **Bugfixes**
 
-* Fixed: Changed the view and the edit user profile links in the comments section on the frontend.
-* Fixed: `Contains` conditional logic operand when value is array.
-* Fixed: Getting cover_size for displaying it in the member directory card.
-* Fixed: Filter's range for numeric-type fields to avoid getting the empty values.
-* Fixed: Integer validation for the 'start_of_week' WP native setting.
-* Fixed: Dependencies with Action Scheduler library.
+* Fixed: Security issue, CVE ID: CVE-2026-4248. Added blacklist filter for convert_tag replace placeholders function.
+* Fixed: HTML sanitization logic for textarea-type custom fields with enabled HTML using setting.
+* Fixed: WP editor formatting to prevent incorrect HTML entity conversion when using html-mode in the textarea-type custom fields. Applied and removed this filter dynamically to avoid interfering with other processes.
+* Fixed: Dynamic string translation pattern and improve escaping. Replaced incorrect __('%s') pattern. (@faisalahammad)
+* Fixed: `wp_die()` function triggering on the frontend actions. Added UM notice above the User Profile page. (based on @faisalahammad suggestions)
+* Fixed: Password reset key handling for multiple users. Previously, the static reset key caused issues when handling password resets for multiple users simultaneously.
+* Fixed: `um_trim_string()` function for using with UTF-8 symbols.
+* Fixed: PHP Notice: Function WP_Scripts::add was called incorrectly.
 
-**Cached and optimized/minified assets(JS/CSS) must be flushed/re-generated after upgrade**
+**Templates Requiring Update**
 
-= 2.10.5 2025-06-25 =
+* members.php
+* message.php
+* restricted-blog.php
+* restricted-taxonomy.php
+
+**Note: Cached and optimized/minified assets(JS/CSS) must be flushed/re-generated after the upgrade**
+
+= 2.11.2 2026-02-10 =
 
 **Enhancements**
 
-* Added: Filter hook [`um_password_reset_form_primary_btn_classes`](https://ultimatemember.github.io/ultimatemember/hooks/um_password_reset_form_primary_btn_classes.html) for primary button classes in UM Password Reset form.
-* Added: Filter hook [`um_login_form_primary_btn_classes`](https://ultimatemember.github.io/ultimatemember/hooks/um_login_form_primary_btn_classes.html) for primary button classes in UM Login form.
-* Added: Filter hook [`um_register_form_primary_btn_classes`](https://ultimatemember.github.io/ultimatemember/hooks/um_register_form_primary_btn_classes.html) for primary button classes in UM Registration form.
-* Tweak: Refactored Site Health data, added hooks for 3rd-party integration.
-* Tweak: Avoid using `um_user( 'password_reset_link' )` and make it directly with `UM()->password()->reset_url( $user_id )` for getting a proper reset URL.
-* Tweak: Avoid using `um_user( 'account_activation_link' )` and make it directly with `UM()->permalinks()->activate_url( $user_id )` for getting a proper activation URL.
+* Added: Server-side validation when the Search Form is submitted.
+* Added: Action hook `um_approve_user_on_email_confirmation` to natively approve the user after validating the email activation link.
+* Added: JS filter wp.hook `um_member_directory_popstate_ignore` to stop window.pushSate in the member directory for 3rd-party integrations.
 
 **Bugfixes**
 
-* Fixed: Stripped shortcodes in the user data during the Account, Registration and Profile forms submission. (Thanks to [MissVeronica](https://github.com/MissVeronica))
-* Fixed: Email placeholders values.
-* Fixed: Refactor deactivation logic to un-schedule Action Scheduler actions.
-* Fixed: Action Scheduler library errors. Updated to the recent 3.9.2 version.
-* Fixed: Secondary email field validation.
-* Fixed: Action Scheduler batch actions with users who have Undefined status.
-* Fixed: Restrictions for 3rd-party Gutenberg Blocks.
-* Fixed: Date/time picker filter-types range query on Member Directories.
-* Fixed: Renamed "Macedonia, the former Yugoslav Republic of" to the official "North Macedonia".
+* Fixed: Security issue, CVE ID: CVE-2025-15064. Deprecated the ability to use HTML inside the user description. It's still allowed to use only predefined 'user_description' tags in `wp_kses()`.
+* Fixed: Security issue, CVE ID: CVE-2026-1404. Modified template item formatting to avoid using HTML characters in the filter values.
+* Fixed: Profile photo dropdown menu position for screens smaller than 340px.
+* Fixed: Display of the saved value of the "Privacy Options" > "Allowed roles" setting for the member directory.
+* Fixed: Information in Site-Health about the registration form's `Template` and `Role` settings.
+* Fixed: Information in Site-Health about the login and profile form's `Template` settings.
 
-**Deprecated**
+**Templates Requiring Update**
 
-* Fully deprecated `account_activation_link_tags_patterns( $placeholders )` function. It's not used previously. Used email function arguments instead.
-* Fully deprecated `account_activation_link_tags_replaces( $replace_placeholders )` function. It's not used previously. Used email function arguments instead.
-* Fully deprecated `UM()->profile()->add_placeholder()` function. Used email function arguments instead.
-* Fully deprecated `UM()->profile()->add_replace_placeholder()` function. Used email function arguments instead.
-* Fully deprecated `UM()->user()->add_activation_placeholder()` function. Used email function arguments instead.
-* Fully deprecated `UM()->user()->add_activation_replace_placeholder()` function. Used email function arguments instead.
-* Deprecated `UM()->user()->maybe_generate_password_reset_key( $userdata )` function. Use `UM()->common()->users()->maybe_generate_password_reset_key( $userdata )` instead.
-* Deprecated `UM()->user()->set_last_login()` function. Use `UM()->common()->users()->set_last_login( $user_id )` instead.
+* members.php
+* searchform.php
 
-**Templates required update**
+**Note: Cached and optimized/minified assets(JS/CSS) must be flushed/re-generated after the upgrade**
 
-* password-reset.php
-
-**Cached and optimized/minified assets(JS/CSS) must be flushed/re-generated after upgrade**
-
-= 2.10.4 2025-05-15 =
-
-**Bugfixes**
-
-* Fixed: Security issue CVE ID: CVE-2025-47691. Used "sniccowp/php-scoper-wordpress-excludes" for getting the recent WordPress functions list and added them to the dynamic blacklist based on the WordPress version.
-* Fixed: The Action Scheduler action `um_set_default_account_status`. Case when some users were approved manually or deleted, and we need to reset the admin notice. Added `error_log()` to the wrong conditions.
-* Fixed: Reset Password request from not a predefined password reset page. It's possible to submit reset password form sitewide using block or shortcode.
-* Fixed: Setting 'Allow users to change email' for the Account page. It works now for any role instead of only the roles with 'Can edit other member accounts?' capability enabled.
-
-= 2.10.3 2025-04-24 =
+= 2.11.1 2025-12-16 =
 
 **Enhancements**
 
-* Added: The `Ignore the "User Role > Registration Options"` setting. It provides an ability to auto-approve users if they were created via wp-admin > Users screen.
-* Tweak: Avoid email notifications to Administrator about user registration via wp-admin > Users screen.
-* Tweak: Updated the Action Scheduler implementation to improve flexibility and clarity. Refactor Action Scheduler for not only email handling.
+* Added: 'Privacy Options' for Member Directory. 'Who can see this member directory' and 'Allowed Roles'.
+* Added: 'Rate Limit' setting for nopriv AJAX actions.
 
 **Bugfixes**
 
-* Fixed: Member Directory styles when it's rendered on the Gutenberg builder page.
-* Fixed: Member Directory filtering query when the custom users metatable is used.
-* Fixed: PHP Warning that occurs when using the `getimagesize` function with an image from an external source.
-* Fixed: Reset Password email notification's the {password_reset_link}` placeholder.
-* Fixed: Changed "Turkey" to the current official term "Türkiye".
+* Fixed: Security issue CVE ID: CVE-2025-13220. Used `shortcode_atts()` function to avoid using wrong attributes.
+* Fixed: Security issue CVE ID: CVE-2025-13217. Implementing proper input sanitization and escaping for iframe URLs in YouTube, Vimeo, and Google Maps embeds.
+* Fixed: Security issue CVE ID: CVE-2025-14081. Filtering fields based on user permissions during Account form submission.
+* Fixed: Security issue CVE ID: CVE-2025-12492. Added directory privacy settings and added rate limiting.
 
-**Cached and optimized/minified assets(JS/CSS) must be flushed/re-generated after upgrade**
+**Templates Requiring Update**
 
-= 2.10.2 2025-04-02 =
+* members.php
+* members-grid.php
+* members-list.php
+
+= 2.11.0 2025-12-02 =
 
 **Enhancements**
 
-* Added: `UM()->common()-filesystem()::maybe_init_wp_filesystem();` method.
-* Added: `UM()->common()-filesystem()::remove_dir();` method.
+* Added: Extra condition for checking the license activation requests.
+* Added: 2nd `$args` attribute to the action hook 'um_cover_area_content'.
+* Added: `$args` and `$user_id` attributes to the action hook 'um_after_profile_header_name'.
+* Added: Class `um-profile-subnav-{$subnav_id}-link` to the sub navigation links in the User Profile page.
+* Tweak: Updated `Extensions_Updater` class to use Action Scheduler in the upgrade process of the UM extensions.
 
 **Bugfixes**
 
-* Fixed: Security issue CVE ID: CVE-2025-1702. Reviewed general search scripts and suggested another solution that uses only `$wpdb->prepare()`.
-
-= 2.10.1 2025-03-03 =
-
-**Bugfixes**
-
-* Fixed: Security issue CVE ID: CVE-2025-1702.
-* Fixed: Activation link redirects to Reset Password after registration without password field and required email activation.
-* Fixed: Honeypot scripts/styles for themes without pre-rendered shortcodes. Enqueue honeypot scripts/styles everytime.
-* Fixed: Profile photo metadata when Gravatar image is used.
-
-**Cached and optimized/minified assets(JS/CSS) must be flushed/re-generated after upgrade**
-
-= 2.10.0 2025-02-18 =
-
-**Enhancements**
-
-* Added: User Profile `form-id` attribute and updated code for Profile/Cover photos actions dropdowns.
-* Added: Honeypot scripts/styles via `wp_add_inline_script()`, `wp_add_inline_style()` changed from direct adding in header and footer.
-* Updated: We've made improvements to requests for extension updates to boost stability.
-* Updated: PHP requirement - the minimum PHP version is now upgraded to 7.0.
-* Updated: Using $wpdb and WPCS for queries. Set minimum required version to 6.2 due to using %i for `$wpdb->prepare()`.
-* Updated: Revised wp-admin user actions handling. Now, the required capability is `edit_users` instead of `manage_options`.
-* Removed: User Profile hidden inputs on view mode.
-* Tweak: WPCS enhancements.
-
-**Bugfixes**
-
-* Fixed: Security issue CVE ID: CVE-2024-12276.
-* Fixed: Custom usermeta table metakeys for filtering in member directory (from `_money_spent` to `wc_money_spent_` and added `wc_order_count_`).
-* Fixed: Layout for "Download your data" and "Erase of your data" fields.
-* Fixed: Image sizes used for Open Graph meta in User Profile headers are now corrected.
-* Fixed: "Delete account text" settings visibility issue in wp-admin.
-* Fixed: The "Privacy Policy" field in the registration form. Disallowed HTML from the "Privacy Policy" content (like `<form>`) is filtered out by the `wp_kses()` function.
-* Fixed: Password fields are now sanitized the WordPress native way, with `wp_unslash()` omitted post-submission.
-
-**Templates required update**
-
-* gdpr-register.php
-* profile.php
-
-**Cached and optimized/minified assets(JS/CSS) must be flushed/re-generated after upgrade**
+* Fixed: User profile links in the comments section on the frontend when the `$comment->user_id` is empty.
+* Fixed: The `emotize` function regexp for better emoji converting.
+* Fixed: The conflict between the image uploader and lazy-loading attribute added by 3rd-party plugins.
+* Fixed: PHP warnings for roles without meta data.
+* Fixed: Typo in labels.
 
 [See changelog for all versions](https://plugins.svn.wordpress.org/ultimate-member/trunk/changelog.txt).
 
 == Upgrade Notice ==
+
+= 2.11.3 =
+This version fixes a security related bug. Upgrade immediately.
+
+= 2.11.2 =
+This version fixes a security related bug. Upgrade immediately.
+
+= 2.11.1 =
+This version fixes a security related bug. Upgrade immediately.
 
 = 2.10.4 =
 This version fixes a security related bug. Upgrade immediately.

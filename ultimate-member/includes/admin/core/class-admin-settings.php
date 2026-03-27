@@ -325,7 +325,7 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 							break;
 						case 'members':
 							if ( ! has_shortcode( $content, 'ultimatemember' ) ) {
-								$page_setting_description = __( '<strong>Warning:</strong> Members page must contain a profile form shortcode. You can get existing shortcode or create a new one <a href="edit.php?post_type=um_directory" target="_blank">here</a>.', 'ultimate-member' );
+								$page_setting_description = __( '<strong>Warning:</strong> Members page must contain a member directory shortcode. You can get existing shortcode or create a new one <a href="edit.php?post_type=um_directory" target="_blank">here</a>.', 'ultimate-member' );
 							}
 							break;
 						default:
@@ -765,6 +765,9 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 					'require_strongpass'                   => array(
 						'sanitize' => 'bool',
 					),
+					'require_strongpass_special_char'      => array(
+						'sanitize' => 'bool',
+					),
 					'password_min_chars'                   => array(
 						'sanitize' => 'absint',
 					),
@@ -1023,6 +1026,18 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 					'disable_restriction_pre_queries'      => array(
 						'sanitize' => 'bool',
 					),
+					'um_google_maps_js_api_key'            => array(
+						'sanitize' => 'text',
+					),
+					'um_google_lang_as_default'            => array(
+						'sanitize' => 'bool',
+					),
+					'um_google_lang'                       => array(
+						'sanitize' => 'text',
+					),
+					'um_google_maps_api_version'           => array(
+						'sanitize' => 'text',
+					),
 					'uninstall_on_delete'                  => array(
 						'sanitize' => 'bool',
 					),
@@ -1030,6 +1045,9 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 						'sanitize' => 'bool',
 					),
 					'display_login_form_notice'            => array(
+						'sanitize' => 'bool',
+					),
+					'ajax_nopriv_rate_limit'               => array(
 						'sanitize' => 'bool',
 					),
 					'banned_capabilities'                  => array(
@@ -1218,6 +1236,14 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 												'label' => __( 'Require Strong Passwords', 'ultimate-member' ),
 												'checkbox_label' => __( 'Enable strong passwords', 'ultimate-member' ),
 												'description' => __( 'Enable this option to apply strong password rules to all password fields (user registration, password reset and password change).', 'ultimate-member' ),
+											),
+											array(
+												'id'    => 'require_strongpass_special_char',
+												'type'  => 'checkbox',
+												'label' => __( 'Password requires special character', 'ultimate-member' ),
+												'checkbox_label' => __( 'Enable special character requirement', 'ultimate-member' ),
+												'description' => __( 'Require at least one special character (e.g. !@#$%^&*) in passwords.', 'ultimate-member' ),
+												'conditional' => array( 'require_strongpass', '=', '1' ),
 											),
 											array(
 												'id'    => 'password_min_chars',
@@ -2230,6 +2256,49 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 									),
 								),
 							),
+							'apis'               => array(
+								'title'         => __( 'APIs', 'ultimate-member' ),
+								'form_sections' => array(
+									'google-maps' => array( // section key `google-maps` means the API $key used for filters in code.
+										'title'       => __( 'Google Maps', 'ultimate-member' ),
+										'description' => __( 'This section is designed to help you integrate Ultimate Member functionality with Google Maps API.', 'ultimate-member' ),
+										'fields'      => array(
+											array(
+												'id'    => 'um_google_maps_js_api_key',
+												'type'  => 'text',
+												'label' => __( 'Maps JavaScript API Key', 'ultimate-member' ),
+												'size'  => 'medium',
+											),
+											array(
+												'id'    => 'um_google_lang_as_default',
+												'type'  => 'checkbox',
+												'label' => __( 'Google Maps locale', 'ultimate-member' ),
+												'checkbox_label' => __( 'Use current site\'s locale as language for Google Maps', 'ultimate-member' ),
+												'description' => __( 'Disable this option if you are planning to use static locale for Google Maps API.', 'ultimate-member' ),
+											),
+											array(
+												'id'      => 'um_google_lang',
+												'type'    => 'select',
+												'label'   => __( 'Custom Google Maps locale', 'ultimate-member' ),
+												'size'    => 'small',
+												'options' => UM()->config()->get( 'google_maps_locales' ),
+												'conditional' => array( 'um_google_lang_as_default', '=', 0 ),
+											),
+											array(
+												'id'      => 'um_google_maps_api_version',
+												'type'    => 'select',
+												'label'   => __( 'Google Maps API version', 'ultimate-member' ),
+												'size'    => 'small',
+												'options' => array(
+													'3.5'  => __( 'Version 3.5x (legacy)', 'ultimate-member' ),
+													'3.64' => __( 'Version 3.64', 'ultimate-member' ),
+												),
+												'conditional' => array( 'um_google_maps_js_api_key', '!=', '' ),
+											),
+										),
+									),
+								),
+							),
 						),
 					),
 					'system_info' => array(
@@ -2259,6 +2328,17 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 				unset( $this->settings_structure['']['sections']['account']['form_sections']['delete_tab']['fields'][2] );
 			} else {
 				unset( $this->settings_structure['']['sections']['account']['form_sections']['delete_tab']['fields'][1] );
+			}
+
+			// Hide un-existed API
+			foreach ( $this->settings_structure['advanced']['sections']['apis']['form_sections'] as $api => $section_data ) {
+				if ( ! UM()->common()->apis()::has_api( $api ) ) {
+					unset( $this->settings_structure['advanced']['sections']['apis']['form_sections'][ $api ] );
+				}
+			}
+			// Hide APIs tab when there aren't any APIs
+			if ( count( $this->settings_structure['advanced']['sections']['apis']['form_sections'] ) < 1 ) {
+				unset( $this->settings_structure['advanced']['sections']['apis'] );
 			}
 		}
 
@@ -2969,11 +3049,9 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 				}
 
 				$request = wp_remote_post( UM()::$store_url, $post_attr );
-				if ( ! is_wp_error( $request ) ) {
-					$request = json_decode( wp_remote_retrieve_body( $request ) );
-				} else {
+				if ( empty( $request ) || is_wp_error( $request ) ) {
 					if ( self::is_license_debug_enabled() ) {
-						error_log( '> Got `wp_error`, try again with `sslverify=true`' );
+						error_log( '> Got `wp_error` or empty request body, try again with `sslverify=true`' );
 					}
 
 					$post_attr['sslverify'] = true;
@@ -2982,6 +3060,20 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 					if ( ! is_wp_error( $request ) ) {
 						$request = json_decode( wp_remote_retrieve_body( $request ) );
 					}
+				} else {
+					$request = json_decode( wp_remote_retrieve_body( $request ) );
+					if ( empty( $request ) ) {
+						if ( self::is_license_debug_enabled() ) {
+							error_log( '> Got empty request body, try again with `sslverify=true`' );
+						}
+
+						$post_attr['sslverify'] = true;
+
+						$request = wp_remote_post( UM()::$store_url, $post_attr );
+						if ( ! is_wp_error( $request ) ) {
+							$request = json_decode( wp_remote_retrieve_body( $request ) );
+						}
+					}
 				}
 
 				if ( self::is_license_debug_enabled() ) {
@@ -2989,6 +3081,8 @@ if ( ! class_exists( 'um\admin\core\Admin_Settings' ) ) {
 						error_log( '> Finally got `wp_error`. Details below.' );
 						error_log( '>> Error code: ' . $request->get_error_code() );
 						error_log( '>> Error message: ' . $request->get_error_message() );
+					} elseif ( empty( $request ) ) {
+						error_log( '> Finally got empty UM website response.' );
 					} else {
 						error_log( '### Response from UM website:' );
 						error_log( '>' . maybe_serialize( $request ) );

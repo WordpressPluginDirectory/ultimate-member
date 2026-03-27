@@ -695,6 +695,10 @@ class Site_Health {
 			$user_settings = array_merge(
 				$user_settings,
 				array(
+					'require_strongpass_special_char' => array(
+						'label' => __( 'Password requires special character', 'ultimate-member' ),
+						'value' => UM()->options()->get( 'require_strongpass_special_char' ) ? $labels['yes'] : $labels['no'],
+					),
 					'password_min_chars' => array(
 						'label' => __( 'Password minimum length', 'ultimate-member' ),
 						'value' => UM()->options()->get( 'password_min_chars' ),
@@ -1475,6 +1479,45 @@ class Site_Health {
 			),
 		);
 
+		$google_maps_api_key = UM()->options()->get( 'um_google_maps_js_api_key' );
+		if ( ! empty( $google_maps_api_key ) ) {
+			$um_google_lang_as_default = UM()->options()->get( 'um_google_lang_as_default' );
+
+			$feature = array_merge(
+				$feature,
+				array(
+					'um_google_maps_js_api_key' => array(
+						'label' => __( 'Google Maps Javascript API Key', 'ultimate-member' ),
+						'value' => $labels['yes'],
+					),
+					'um_google_lang_as_default' => array(
+						'label' => __( 'Use site\'s locale as language for Google Maps', 'ultimate-member' ),
+						'value' => $um_google_lang_as_default ? $labels['yes'] : $labels['no'],
+					),
+				)
+			);
+
+			if ( empty( $um_google_lang_as_default ) ) {
+				$options = UM()->config()->get( 'google_maps_locales' );
+				$lang    = UM()->options()->get( 'um_google_lang' );
+
+				$feature['um_google_lang'] = array(
+					'label' => __( 'Google Maps language', 'ultimate-member' ),
+					'value' => array_key_exists( $lang, $options ) ? $options[ $lang ] : __( 'Invalid', 'ultimate-member' ),
+				);
+			}
+
+			$feature['um_google_maps_api_version'] = array(
+				'label' => __( 'Google Maps API version', 'ultimate-member' ),
+				'value' => UM()->options()->get( 'um_google_maps_api_version' ),
+			);
+		} else {
+			$feature['um_google_maps_js_api_key'] = array(
+				'label' => __( 'Google Maps Javascript API Key', 'ultimate-member' ),
+				'value' => $labels['no'],
+			);
+		}
+
 		// Secure settings
 		$secure_ban_admins_accounts = UM()->options()->get( 'secure_ban_admins_accounts' );
 
@@ -1492,6 +1535,10 @@ class Site_Health {
 			'advanced_security_separator' => array(
 				'label' => __( 'Advanced > Security', 'ultimate-member' ),
 				'value' => '---------------------------------------------------------------------',
+			),
+			'ajax_nopriv_rate_limit'      => array(
+				'label' => __( 'Enable Rate Limiting', 'ultimate-member' ),
+				'value' => UM()->options()->get( 'ajax_nopriv_rate_limit' ) ? $labels['yes'] : $labels['no'],
 			),
 			'banned_capabilities'         => array(
 				'label' => __( 'Banned Administrative Capabilities', 'ultimate-member' ),
@@ -2126,11 +2173,11 @@ class Site_Health {
 						$debug_info[] = array(
 							'role'             => array(
 								'label' => __( 'User registration role', 'ultimate-member' ),
-								'value' => 0 === absint( get_post_meta( $form_id, '_um_register_role', true ) ) ? $labels['default'] : get_post_meta( $form_id, '_um_register_role', true ),
+								'value' => empty( get_post_meta( $form_id, '_um_register_role', true ) ) ? $labels['default'] : get_post_meta( $form_id, '_um_register_role', true ),
 							),
 							'template'         => array(
 								'label' => __( 'Template', 'ultimate-member' ),
-								'value' => 0 === absint( get_post_meta( $form_id, '_um_register_template', true ) ) ? $labels['default'] : get_post_meta( $form_id, '_um_register_template', true ),
+								'value' => empty( get_post_meta( $form_id, '_um_register_template', true ) ) ? $labels['default'] : get_post_meta( $form_id, '_um_register_template', true ),
 							),
 							'max_width'        => array(
 								'label' => __( 'Max. Width (px)', 'ultimate-member' ),
@@ -2216,7 +2263,7 @@ class Site_Health {
 						$debug_info[] = array(
 							'template'         => array(
 								'label' => __( 'Template', 'ultimate-member' ),
-								'value' => 0 === absint( get_post_meta( $form_id, '_um_login_template', true ) ) ? $labels['default'] : get_post_meta( $form_id, '_um_login_template', true ),
+								'value' => empty( get_post_meta( $form_id, '_um_login_template', true ) ) ? $labels['default'] : get_post_meta( $form_id, '_um_login_template', true ),
 							),
 							'max_width'        => array(
 								'label' => __( 'Max. Width (px)', 'ultimate-member' ),
@@ -2288,7 +2335,7 @@ class Site_Health {
 							),
 							'template'         => array(
 								'label' => __( 'Template', 'ultimate-member' ),
-								'value' => 0 === absint( get_post_meta( $form_id, '_um_profile_template', true ) ) ? $labels['default'] : get_post_meta( $form_id, '_um_profile_template', true ),
+								'value' => empty( get_post_meta( $form_id, '_um_profile_template', true ) ) ? $labels['default'] : get_post_meta( $form_id, '_um_profile_template', true ),
 							),
 							'max_width'        => array(
 								'label' => __( 'Max. Width (px)', 'ultimate-member' ),
@@ -2569,6 +2616,32 @@ class Site_Health {
 				 * add_filter( 'um_debug_member_directory_general_extend', 'um_debug_member_directory_general_extend', 10, 2 );
 				 */
 				$debug_info = apply_filters( 'um_debug_member_directory_general_extend', $debug_info, $directory_id );
+
+				$md_privacy_options = array(
+					0 => __( 'Anyone', 'ultimate-member' ),
+					1 => __( 'Guests only', 'ultimate-member' ),
+					2 => __( 'Members only', 'ultimate-member' ),
+					3 => __( 'Only specific roles', 'ultimate-member' ),
+				);
+				$directory_privacy  = get_post_meta( $directory_id, '_um_privacy', true );
+
+				$debug_info[] = array(
+					'privacy' => array(
+						'label' => __( 'Who can see this member directory', 'ultimate-member' ),
+						'value' => array_key_exists( $directory_privacy, $md_privacy_options ) ? $md_privacy_options[ $directory_privacy ] : __( 'Invalid', 'ultimate-member' ),
+					),
+				);
+				if ( 3 === absint( $directory_privacy ) ) {
+					$directory_privacy_roles = get_post_meta( $directory_id, '_um_privacy_roles', true );
+					$directory_privacy_roles = ! empty( $directory_privacy_roles ) && is_array( $directory_privacy_roles ) ? $directory_privacy_roles : array();
+
+					$debug_info[] = array(
+						'privacy_roles' => array(
+							'label' => __( 'Allowed roles', 'ultimate-member' ),
+							'value' => $directory_privacy_roles,
+						),
+					);
+				}
 
 				if ( isset( $options[ get_post_meta( $directory_id, '_um_sortby', true ) ] ) ) {
 					$sortby_label = $options[ get_post_meta( $directory_id, '_um_sortby', true ) ];

@@ -6,7 +6,7 @@
  *
  * Page: "Members"
  *
- * @version 2.6.8
+ * @version 2.11.3
  *
  * @var array $args
  */
@@ -23,7 +23,7 @@ foreach ( UM()->config()->core_directory_meta['members'] as $k => $v ) {
 	$def_args[ $key ] = $v;
 }
 
-$unique_hash = substr( md5( $args['form_id'] ), 10, 5 );
+$unique_hash = UM()->member_directory()->get_directory_hash( $args['form_id'] );
 
 $args = array_merge( $def_args, $args );
 
@@ -176,7 +176,8 @@ if ( $filters_expanded ) {
 //send $args variable to the templates
 $args['args'] = $args;
 foreach ( $args['view_types'] as $type ) {
-	$basename = UM()->member_directory()->get_type_basename( $type );
+	$basename         = UM()->member_directory()->get_type_basename( $type );
+	$args['no_users'] = ! empty( $args['no_users'] ) ? $args['no_users'] : __( 'We are sorry. We cannot find any users who match your search criteria.', 'ultimate-member' );
 	UM()->get_template( 'members-' . $type . '.php', $basename, $args, true );
 }
 UM()->get_template( 'members-header.php', '', $args, true );
@@ -237,8 +238,8 @@ if ( ( ( $search && $show_search ) || ( $filters && $show_filters && count( $sea
 $postid = ! empty( $post->ID ) ? $post->ID : '';
 ?>
 
-<div class="um <?php echo esc_attr( $this->get_class( $mode ) ); ?> um-<?php echo esc_attr( substr( md5( $form_id ), 10, 5 ) ); ?>"
-	 data-hash="<?php echo esc_attr( substr( md5( $form_id ), 10, 5 ) ) ?>" data-base-post="<?php echo esc_attr( $postid ) ?>"
+<div class="um <?php echo esc_attr( $this->get_class( $mode ) ); ?> um-<?php echo esc_attr( $unique_hash ); ?>"
+	 data-hash="<?php echo esc_attr( $unique_hash ) ?>" data-base-post="<?php echo esc_attr( $postid ) ?>"
 	 data-must-search="<?php echo esc_attr( $must_search ); ?>" data-searched="<?php echo $not_searched ? '0' : '1'; ?>"
 	 data-view_type="<?php echo esc_attr( $current_view ) ?>" data-page="<?php echo esc_attr( $current_page ) ?>"
 	 data-sorting="<?php echo esc_attr( $sort_from_url ) ?>">
@@ -313,7 +314,7 @@ $postid = ! empty( $post->ID ) ? $post->ID : '';
 						<?php $items = array();
 
 						foreach ( $sorting_options as $value => $title ) {
-							$items[] = '<a href="javascript:void(0);" data-directory-hash="' . esc_attr( substr( md5( $form_id ), 10, 5 ) ) . '" class="um-sortyng-by-' . esc_attr( $value ) . '" data-value="' . esc_attr( $value ) . '" data-selected="' . ( ( $sort_from_url == $value ) ? '1' : '0' ) . '" data-default="' . ( ( $default_sorting == $value ) ? '1' : '0' ) . '">' . $title . '</a>'; ?>
+							$items[] = '<a href="javascript:void(0);" data-directory-hash="' . esc_attr( $unique_hash ) . '" class="um-sortyng-by-' . esc_attr( $value ) . '" data-value="' . esc_attr( $value ) . '" data-selected="' . ( ( $sort_from_url == $value ) ? '1' : '0' ) . '" data-default="' . ( ( $default_sorting == $value ) ? '1' : '0' ) . '">' . $title . '</a>'; ?>
 						<?php }
 
 						UM()->member_directory()->dropdown_menu( '.um-member-directory-sorting-a', 'click', $items ); ?>
@@ -343,13 +344,13 @@ $postid = ! empty( $post->ID ) ? $post->ID : '';
 						<# _.each( data.filters, function( filter, key, list ) { #>
 							<div class="um-members-filter-tag">
 								<# if ( filter.type == 'slider' ) { #>
-									{{{filter.value_label}}}
+									{{filter.value_label}}
 								<# } else { #>
-									<strong>{{{filter.label}}}</strong>: {{{filter.value_label}}}
+									<strong>{{filter.label}}</strong>: {{filter.value_label}}
 								<# } #>
-								<div class="um-members-filter-remove um-tip-n" data-name="{{{filter.name}}}"
-									 data-value="{{{filter.value}}}" data-range="{{{filter.range}}}"
-									 data-type="{{{filter.type}}}" title="<?php esc_attr_e( 'Remove filter', 'ultimate-member' ) ?>">&times;</div>
+								<div class="um-members-filter-remove um-tip-n" data-name="{{filter.name}}"
+									 data-value="{{filter.value}}" data-range="{{filter.range}}"
+									 data-type="{{filter.type}}" title="<?php esc_attr_e( 'Remove filter', 'ultimate-member' ) ?>">&times;</div>
 							</div>
 						<# }); #>
 					<# } #>

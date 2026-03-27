@@ -188,7 +188,6 @@ if ( ! class_exists( 'um\core\Shortcodes' ) ) {
 			return $args;
 		}
 
-
 		/**
 		 * Filter shortcode args
 		 *
@@ -196,44 +195,75 @@ if ( ! class_exists( 'um\core\Shortcodes' ) ) {
 		 *
 		 * @return array
 		 */
-		function parse_shortcode_args( $args ) {
-			if ( $this->message_mode == true ) {
-				if ( ! empty( $_REQUEST['um_role'] ) ) {
-					$args['template'] = 'message';
-					$roleID = sanitize_key( $_REQUEST['um_role'] );
-					$role = UM()->roles()->role_data( $roleID );
+		public function parse_shortcode_args( $args ) {
+			// phpcs:ignore WordPress.Security.NonceVerification -- result of the form submission verified earlier.
+			if ( $this->message_mode && ! empty( $_REQUEST['um_role'] ) ) {
+				$args['template'] = 'message';
+				$role             = sanitize_key( $_REQUEST['um_role'] ); // phpcs:ignore WordPress.Security.NonceVerification -- result of the form submission verified earlier.
+				$role_data        = UM()->roles()->role_data( $role );
 
-					if ( ! empty( $role ) && ! empty( $role['status'] ) ) {
-						$message_key = $role['status'] . '_message';
-						$this->custom_message = ! empty( $role[ $message_key ] ) ? $this->convert_user_tags( stripslashes( $role[ $message_key ] ) ) : '';
-					}
+				if ( ! empty( $role_data ) && ! empty( $role_data['status'] ) ) {
+					$message_key = $role_data['status'] . '_message';
+					$message     = ! empty( $role_data[ $message_key ] ) ? stripslashes( $role_data[ $message_key ] ) : '';
+					/**
+					 * Filters `pending` or `checkmail` status messages after registration.
+					 * Note: The message can have user placeholders. Please make sure that you use them in the proper context.
+					 * Allowed placeholders by default: '{first_name}', '{last_name}', '{display_name}', '{user_avatar_small}', '{username}', '{nickname}', '{user_email}'.
+					 *
+					 * @param {string} $message   After registration message based on the user status.
+					 * @param {string} $role      User role.
+					 * @param {array}  $role_data User role data.
+					 * @param {array}  $args      Registration form data arguments.
+					 *
+					 * @return {string} After registration message based on the user status.
+					 *
+					 * @since 2.11.3
+					 * @hook um_custom_{$message_key}
+					 *
+					 * @example <caption>Change the registration message if the user has status `Waiting for admin review`.</caption>
+					 * function um_custom_pending_message( $message, $role, $role_data, $args ) {
+					 *     $message = 'Your custom message is here';
+					 *     return $message;
+					 * }
+					 * add_filter( 'um_custom_pending_message', 'um_custom_pending_message', 10, 4 );
+					 * @example <caption>Change the registration message if the user has status `Waiting for email activation`.</caption>
+					 * function um_custom_checkmail_message( $message, $role, $role_data, $args ) {
+					 *      $message = 'Your custom message is here';
+					 *      return $message;
+					 * }
+					 * add_filter( 'um_custom_checkmail_message', 'um_custom_checkmail_message', 10, 4 );
+					 */
+					$message = apply_filters( 'um_custom_' . $message_key, $message, $role, $role_data, $args );
+
+					$args['message'] = $message ? $this->convert_user_tags( $message ) : '';
 				}
 			}
 
-			foreach ( $args as $k => $v ) {
-				$args[ $k ] = maybe_unserialize( $args[ $k ] );
-			}
-
-			return $args;
+			return array_map( 'maybe_unserialize', $args );
 		}
-
 
 		/**
 		 * Emoji support
 		 *
-		 * @param $content
+		 * @param string $content
+		 * @param bool   $stripslashes
 		 *
 		 * @return mixed|string
 		 */
-		function emotize( $content ) {
-			$content = stripslashes( $content );
+		public function emotize( $content, $stripslashes = true ) {
+			if ( $stripslashes ) {
+				$content = stripslashes( $content );
+			}
 			foreach ( $this->emoji as $code => $val ) {
-				$regex = str_replace(array('(', ')'), array("\\" . '(', "\\" . ')'), $code);
-				$content = preg_replace('/(' . $regex . ')(\s|$)/', '<img src="' . $val . '" alt="' . $code . '" title="' . $code . '" class="emoji" />$2', $content);
+				$regex   = str_replace( array( '(', ')' ), array( '\\' . '(', '\\' . ')' ), $code );
+				$content = preg_replace(
+					'/(' . $regex . ')(?=\s|$|<)/',
+					'<img src="' . $val . '" alt="' . $code . '" title="' . $code . '" class="emoji" />',
+					$content
+				);
 			}
 			return $content;
 		}
-
 
 		/**
 		 * Remove wpautop filter for post content if it's UM core page
@@ -522,10 +552,10 @@ if ( ! class_exists( 'um\core\Shortcodes' ) ) {
 		 *
 		 * @return string
 		 */
-		function ultimatemember_login( $args = array() ) {
+		public function ultimatemember_login( $args = array() ) {
 			global $wpdb;
 
-			$args = ! empty( $args ) ? $args : array();
+			$args = shortcode_atts( array(), $args, 'ultimatemember_login' );
 
 			$default_login = $wpdb->get_var(
 				"SELECT pm.post_id
@@ -542,23 +572,18 @@ if ( ! class_exists( 'um\core\Shortcodes' ) ) {
 				$shortcode_attrs .= " {$key}=\"{$value}\"";
 			}
 
-			if ( version_compare( get_bloginfo('version'),'5.4', '<' ) ) {
-				return do_shortcode( "[ultimatemember {$shortcode_attrs} /]" );
-			} else {
-				return apply_shortcodes( "[ultimatemember {$shortcode_attrs} /]" );
-			}
+			return apply_shortcodes( "[ultimatemember {$shortcode_attrs} /]" );
 		}
-
 
 		/**
 		 * @param array $args
 		 *
 		 * @return string
 		 */
-		function ultimatemember_register( $args = array() ) {
+		public function ultimatemember_register( $args = array() ) {
 			global $wpdb;
 
-			$args = ! empty( $args ) ? $args : array();
+			$args = shortcode_atts( array(), $args, 'ultimatemember_register' );
 
 			$default_register = $wpdb->get_var(
 				"SELECT pm.post_id
@@ -575,23 +600,18 @@ if ( ! class_exists( 'um\core\Shortcodes' ) ) {
 				$shortcode_attrs .= " {$key}=\"{$value}\"";
 			}
 
-			if ( version_compare( get_bloginfo('version'),'5.4', '<' ) ) {
-				return do_shortcode( "[ultimatemember {$shortcode_attrs} /]" );
-			} else {
-				return apply_shortcodes( "[ultimatemember {$shortcode_attrs} /]" );
-			}
+			return apply_shortcodes( "[ultimatemember {$shortcode_attrs} /]" );
 		}
-
 
 		/**
 		 * @param array $args
 		 *
 		 * @return string
 		 */
-		function ultimatemember_profile( $args = array() ) {
+		public function ultimatemember_profile( $args = array() ) {
 			global $wpdb;
 
-			$args = ! empty( $args ) ? $args : array();
+			$args = shortcode_atts( array(), $args, 'ultimatemember_profile' );
 
 			$default_profile = $wpdb->get_var(
 				"SELECT pm.post_id
@@ -609,23 +629,18 @@ if ( ! class_exists( 'um\core\Shortcodes' ) ) {
 				$shortcode_attrs .= " {$key}=\"{$value}\"";
 			}
 
-			if ( version_compare( get_bloginfo('version'),'5.4', '<' ) ) {
-				return do_shortcode( "[ultimatemember {$shortcode_attrs} /]" );
-			} else {
-				return apply_shortcodes( "[ultimatemember {$shortcode_attrs} /]" );
-			}
+			return apply_shortcodes( "[ultimatemember {$shortcode_attrs} /]" );
 		}
-
 
 		/**
 		 * @param array $args
 		 *
 		 * @return string
 		 */
-		function ultimatemember_directory( $args = array() ) {
+		public function ultimatemember_directory( $args = array() ) {
 			global $wpdb;
 
-			$args = ! empty( $args ) ? $args : array();
+			$args = shortcode_atts( array(), $args, 'ultimatemember_directory' );
 
 			$default_directory = $wpdb->get_var(
 				"SELECT pm.post_id
@@ -643,11 +658,7 @@ if ( ! class_exists( 'um\core\Shortcodes' ) ) {
 				$shortcode_attrs .= " {$key}=\"{$value}\"";
 			}
 
-			if ( version_compare( get_bloginfo('version'),'5.4', '<' ) ) {
-				return do_shortcode( "[ultimatemember {$shortcode_attrs} /]" );
-			} else {
-				return apply_shortcodes( "[ultimatemember {$shortcode_attrs} /]" );
-			}
+			return apply_shortcodes( "[ultimatemember {$shortcode_attrs} /]" );
 		}
 
 		/**
@@ -789,6 +800,9 @@ if ( ! class_exists( 'um\core\Shortcodes' ) ) {
 			}
 
 			if ( 'directory' === $args['mode'] ) {
+				if ( ! UM()->member_directory()->can_view_directory( $this->form_id ) ) {
+					return ''; // Checking for privacy settings of the member directory
+				}
 				wp_enqueue_script( 'um_members' );
 				wp_enqueue_style( 'um_members' );
 			}
@@ -1381,12 +1395,10 @@ if ( ! class_exists( 'um\core\Shortcodes' ) ) {
 		}
 
 		/**
-		 * @param array $args
-		 * @param string $content
 		 *
 		 * @return string
 		 */
-		public function ultimatemember_searchform( $args = array(), $content = '' ) {
+		public function ultimatemember_searchform() {
 			if ( ! UM()->options()->get( 'members_page' ) ) {
 				return '';
 			}
@@ -1402,7 +1414,7 @@ if ( ! class_exists( 'um\core\Shortcodes' ) ) {
 				return '';
 			}
 
-			//current user priority role
+			// Current user priority role
 			$priority_user_role = false;
 			if ( is_user_logged_in() ) {
 				$priority_user_role = UM()->roles()->get_priority_user_role( get_current_user_id() );
@@ -1416,7 +1428,7 @@ if ( ! class_exists( 'um\core\Shortcodes' ) ) {
 					$directory_data['roles_can_search'] = maybe_unserialize( $directory_data['roles_can_search'] );
 				}
 
-				$show_search = empty( $directory_data['roles_can_search'] ) || ( ! empty( $priority_user_role ) && in_array( $priority_user_role, $directory_data['roles_can_search'] ) );
+				$show_search = empty( $directory_data['roles_can_search'] ) || ( ! empty( $priority_user_role ) && in_array( $priority_user_role, $directory_data['roles_can_search'], true ) );
 				if ( empty( $directory_data['search'] ) || ! $show_search ) {
 					continue;
 				}
@@ -1430,12 +1442,11 @@ if ( ! class_exists( 'um\core\Shortcodes' ) ) {
 				return '';
 			}
 
+			$query        = array_filter( $query );
 			$search_value = array_values( $query );
 
 			$t_args = array(
-				'query'        => $query,
-				'search_value' => $search_value[0],
-				'members_page' => um_get_core_page( 'members' ),
+				'search_value' => ! empty( $search_value ) ? $search_value[0] : '',
 			);
 			return UM()->get_template( 'searchform.php', '', $t_args );
 		}
